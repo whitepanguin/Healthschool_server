@@ -36,6 +36,9 @@ app.use(cors({
 const videoDirectory = path.join(__dirname, "videos");
 app.use("/videos", express.static(videoDirectory));
 
+const storeDirectory = path.join(__dirname, "stores");
+app.use("/stores", express.static(storeDirectory));
+
 // 미들웨어 설정
 app.use(bodyParser.json());
 app.use(express.urlencoded({ extended: false }));
