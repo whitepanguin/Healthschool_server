@@ -9,11 +9,13 @@ import rootRouter from "./routes/index.js";
 import passport from "passport";
 import { initializePassport } from "./auth/auth.js";
 
+
 //이미지 등록
 import multer from "multer";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
+import Comment from "./models/commentSchema.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -23,7 +25,6 @@ dotenv.config(); // dotenv 연결
 
 const app = express();
 const port = 8000;
-
 // CORS 설정 (여기 추가)
 app.use(cors({
   origin: "*", // 모든 도메인 허용 (개발 환경)
@@ -42,21 +43,6 @@ app.use("/stores", express.static(storeDirectory));
 app.use(bodyParser.json());
 app.use(express.urlencoded({ extended: false }));
 
-// 비디오 목록 API
-app.get("/api/videos", (req, res) => {
-  fs.readdir(videoDirectory, (err, files) => {
-    if (err) {
-      return res.status(500).json({ error: "비디오 파일 목록을 불러오지 못했습니다." });
-    }
-
-    const videoList = files.map((file) => ({
-      name: file,
-      url: `http://localhost:${port}/videos/${file}`,
-    }));
-
-    res.status(200).json(videoList);
-  });
-});
 
 // Passport 초기화
 app.use(passport.initialize());

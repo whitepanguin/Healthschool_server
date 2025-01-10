@@ -48,6 +48,7 @@ const localStrategy = async (req, res, next) => {
         loginSuccess : true,
         jwtToken : jwtToken
       })
+      console.log("로그인 성공")
     })
 
 

@@ -4,6 +4,7 @@ import userRouter from './user/userRouter.js';
 import authRouter from './auth/authRouter.js';
 import paymentRouter from './payment/paymentRouter.js';
 import videoRouter from './video/videoRouter.js';
+import { getComments } from '../controller/video/videoController.js';
 import storeRouter from './store/storeRouter.js';
 
 const rootRouter = express.Router();
