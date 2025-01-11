@@ -1,4 +1,4 @@
-import path from 'path';
+import path from "path";
 import User from "../../models/userSchema.js";
 import bcrypt from "bcrypt";
 
@@ -68,6 +68,48 @@ const login = async (req, res) => {
   }
 };
 
+//유저 찾기
+const findUser = async (req, res) => {
+  const { name, birthDate } = req.body;
+
+  try {
+    const user = await User.findOne({ name, birthDate }).lean();
+    if (!user) {
+      return res.status(404).json({ message: "사용자를 찾을 수 없습니다." });
+    }
+
+    res.status(200).json({ message: `이메일를 찾았습니다: ${user.email}` });
+  } catch (error) {
+    console.error("Error during findUser:", error);
+    res.status(500).json({ message: "서버 오류" });
+  }
+};
+
+//비밀번호 찾기
+const findPassword = async (req, res) => {
+  const { email, name, birthDate } = req.body;
+
+  try {
+    const user = await User.findOne({ email, name, birthDate }).lean();
+    if (!user) {
+      return res.status(404).json({ message: "사용자를 찾을 수 없습니다." });
+    }
+    // 6자리 임시 비밀번호 생성
+    const temporaryPassword = Math.random().toString(36).slice(-6); // 영문+숫자 6자리
+
+    const hashedPassword = await bcrypt.hash(temporaryPassword, salt);
+    await User.updateOne(
+      { email: user.email },
+      { $set: { password: hashedPassword } }
+    );
+
+    res.status(200).json({ message: `임시 비밀번호: ${temporaryPassword}` });
+  } catch (error) {
+    console.error("Error during findUser:", error);
+    res.status(500).json({ message: "서버 오류" });
+  }
+};
+
 // 20분
 // 회원정보 수정
 const modify = async (req, res) => {
@@ -105,16 +147,26 @@ const remove = async (req, res) => {
 
 const updatePicture = async (req, res) => {
   const uploadFolder = "uploads/profiles";
-  const relativePath = path.join(uploadFolder, req.file.filename).replaceAll("\\", "/")
+  const relativePath = path
+    .join(uploadFolder, req.file.filename)
+    .replaceAll("\\", "/");
 
   // mongoDB에 저장한다.
   // 유저를 찾는다
   // 유저를 .updateOne(foundUser, {picture})
 
   res.status(200).json({
-    message : "업로드 완료",
-    filePath : `${relativePath}`
-  })
-}
+    message: "업로드 완료",
+    filePath: `${relativePath}`,
+  });
+};
 
-export { register, login, modify, remove, updatePicture };
+export {
+  register,
+  login,
+  modify,
+  remove,
+  updatePicture,
+  findUser,
+  findPassword,
+};
