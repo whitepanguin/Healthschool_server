@@ -33,6 +33,7 @@ export const getReplyComments = async (req, res) => {
 };
 
 
+
 export const addReplyComments = async (req, res) => {
   const { content, email, nickname, userProfile, uploadDate } = req.body;  // 요청 본문에서 데이터 받아오기
   const { commentId } = req.params;  // URL에서 commentId 받기
@@ -57,7 +58,39 @@ export const addReplyComments = async (req, res) => {
     res.status(500).json({ error: "서버 오류" });
   }
 };
+export const deleteReplyComments = async (req, res) => {
+  const { parentId, childId } = req.params;  // URL에서 parentId와 childId 받아오기
+  const { email } = req.body;  // 로그인된 사용자의 이메일을 body에서 받아옴
+  console.log("parentId: ", parentId)
+  console.log("email",email)
+  console.log("cchildId:", childId)
+  try {
+    // 대댓글을 찾기
+    const reply = await ReplyComment.findOne({ 
+      _id: childId, 
+      parentCommentId: parentId  // 부모 댓글 ID로 필터링
+    });
 
+    if (!reply) {
+      return res.status(404).json({ error: '대댓글을 찾을 수 없습니다.' });
+    }
+
+    // 대댓글 작성자 확인
+    if (reply.email !== email) {
+      return res.status(403).json({ error: '삭제할 권한이 없습니다. 자신이 작성한 댓글만 삭제할 수 있습니다.' });
+    }
+
+    // 대댓글 삭제
+    await ReplyComment.deleteOne({ _id: childId });
+
+    // 삭제 성공
+    res.status(200).json({ message: '대댓글이 삭제되었습니다.' });
+    
+  } catch (err) {
+    console.error('대댓글 삭제 중 오류 발생:', err);
+    res.status(500).json({ error: '서버 오류' });
+  }
+};
 export const getComments = async (req, res) => {
   const { videoId } = req.params;  // URL에서 videoId 받기
   console.log(videoId)
@@ -123,4 +156,5 @@ export const addComments = async (req, res) => {
     console.error('댓글 추가 중 오류 발생:', err);
     res.status(500).json({ error: '댓글을 저장하는 데 실패했습니다.' });
   }
+  
 };
