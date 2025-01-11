@@ -13,7 +13,7 @@ export const getStores = async (req, res) => {
   }
 };
 
-// 동영상 추가
+
 export const addStore = async (req, res) => {
   const { title, subtitle, detail, productName, email, description, additionTitle, productPrice, additionPrice, uploadDate, PayDate, tags, imageUrl } = req.body;
 
