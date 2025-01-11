@@ -32,6 +32,32 @@ export const getReplyComments = async (req, res) => {
   }
 };
 
+
+export const addReplyComments = async (req, res) => {
+  const { content, email, nickname, userProfile, uploadDate } = req.body;  // 요청 본문에서 데이터 받아오기
+  const { commentId } = req.params;  // URL에서 commentId 받기
+  try {
+    // 새로운 대댓글 생성
+    const newReply = new ReplyComment({
+      parentCommentId:commentId,  // 부모 댓글 ID
+      content,                     // 대댓글 내용
+      email,                       // 작성자 이메일
+      nickname,                    // 작성자 닉네임
+      userProfile,                 // 작성자 프로필 이미지
+      uploadDate                   // 작성 시간
+    });
+
+    // 데이터베이스에 저장
+    const savedReply = await newReply.save();
+
+    // 성공적으로 저장되었으면 저장된 데이터를 반환
+    res.status(201).json(savedReply);
+  } catch (err) {
+    console.error("대댓글 추가 중 오류 발생:", err);
+    res.status(500).json({ error: "서버 오류" });
+  }
+};
+
 export const getComments = async (req, res) => {
   const { videoId } = req.params;  // URL에서 videoId 받기
   console.log(videoId)
