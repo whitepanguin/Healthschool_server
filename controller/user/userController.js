@@ -113,24 +113,85 @@ const findPassword = async (req, res) => {
 // 20분
 // 회원정보 수정
 const modify = async (req, res) => {
-  const { email } = req.body;
-  // 회원 정보를 수정한다.
-  const foundUser = await User.findOne({ email: email }).lean();
-  if (!foundUser) {
-    res.status(400).json({
-      updateSuccess: false,
-      message: "업데이트를 할 수 없습니다",
-    });
-  } else {
-    await User.updateOne(foundUser, req.body);
-    const updatedUser = await User.findOne({ email: email }).lean();
+  try {
+    const { email, name, nickName, address, birthDate } = req.body;
+
+    // 📌 이메일 필수 체크
+    if (!email) {
+      return res.status(400).json({
+        updateSuccess: false,
+        message: "이메일이 필요합니다.",
+      });
+    }
+
+    // 📌 사용자 존재 확인
+    const foundUser = await User.findOne({ email }).lean();
+    if (!foundUser) {
+      return res.status(404).json({
+        updateSuccess: false,
+        message: "존재하지 않는 사용자입니다.",
+      });
+    }
+
+    // 📌 업데이트 데이터 구성
+    const updateData = {};
+    if (name) updateData.name = name;
+    if (nickName) updateData.nickName = nickName;
+    if (address) updateData.address = address;
+    if (birthDate) updateData.birthDate = Number(birthDate);  // ✅ 숫자 변환
+    updateData.updatedAt = new Date().toISOString();  // ✅ 업데이트 시간 갱신
+
+    // 📌 정보 업데이트
+    await User.updateOne({ email }, { $set: updateData });
+
+    // 📌 업데이트된 정보 반환
+    const updatedUser = await User.findOne({ email }).lean();
     res.status(200).json({
       updateSuccess: true,
       message: "성공적으로 업데이트가 완료되었습니다.",
       currentUser: updatedUser,
     });
+
+  } catch (error) {
+    console.error("회원정보 업데이트 오류:", error);
+    res.status(500).json({
+      updateSuccess: false,
+      message: "서버 오류로 업데이트에 실패했습니다.",
+    });
   }
 };
+
+// ✅ 유저 정보 조회 API 추가
+const getUserInfo = async (req, res) => {
+  const { email } = req.query;  // 🔑 쿼리 파라미터에서 이메일 받기
+
+  try {
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        message: "이메일이 필요합니다.",
+      });
+    }
+
+    const user = await User.findOne({ email }).lean();
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "사용자를 찾을 수 없습니다.",
+      });
+    }
+
+    res.status(200).json(user);  // ✅ 사용자 정보 반환
+  } catch (error) {
+    console.error("유저 정보 조회 실패:", error);
+    res.status(500).json({
+      success: false,
+      message: "서버 오류가 발생했습니다.",
+    });
+  }
+};
+
 
 // 회원 탈퇴
 const remove = async (req, res) => {
@@ -166,7 +227,8 @@ export {
   login,
   modify,
   remove,
-  updatePicture,
+  updatePicture, 
+  getUserInfo,
   findUser,
   findPassword,
 };

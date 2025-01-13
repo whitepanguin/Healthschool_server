@@ -43,6 +43,7 @@ const passportVerify = async (email, password, done) => {
     return done(null, foundUser);
   } catch (error) {
     console.error("passportVerify error", error);
+    return done(error);
   }
 };
 
@@ -67,6 +68,7 @@ const JWTVerify = async (jwtPayload, done) => {
   } catch (error) {
     console.error("JWTVerify", error);
     done(error);
+
   }
 };
 
