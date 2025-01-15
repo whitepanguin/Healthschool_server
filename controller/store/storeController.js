@@ -13,9 +13,19 @@ export const getStores = async (req, res) => {
   }
 };
 
+export const checkStore  = async (req, res) => {
+  try {
+    const { ids } = req.body;
+    const stores = await Store.find({ _id: { $in: ids } });
+    res.json(stores);
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("서버 오류");
+  }
+};
 
 export const addStore = async (req, res) => {
-  const { title, subtitle, detail, productName, email, description, additionTitle, productPrice, additionPrice, uploadDate, PayDate, tags, imageUrl } = req.body;
+  const { title, subtitle, detail, productName, email, description, additionTitle, productPrice, additionPrice, uploadDate, PayDate, tags, imageUrl,  option1, } = req.body;
 
   const newVideo = new Video({
     title,
@@ -30,7 +40,8 @@ export const addStore = async (req, res) => {
     uploadDate,
     PayDate, 
     tags, 
-    imageUrl,  
+    imageUrl,
+    option1
   });
 
   try {
