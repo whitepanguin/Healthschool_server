@@ -26,7 +26,7 @@ const register = async (req, res) => {
       password: hashedPassword,
       name: req.body.name,
       birthDate: req.body.birthDate,
-      nickname: req.body.nickname,
+      nickName: req.body.nickName,
     });
 
     return res.status(201).json({
@@ -222,6 +222,49 @@ const updatePicture = async (req, res) => {
   });
 };
 
+// 비밀번호 변경
+const updatePassword = async (req, res) => {
+  const { email, currentPassword, newPassword } = req.body;
+
+  try {
+    // 사용자 조회
+    const foundUser = await User.findOne({ email }).lean();
+    if (!foundUser) {
+      return res.status(404).json({
+        success: false,
+        message: "사용자를 찾을 수 없습니다.",
+      });
+    }
+
+    // 현재 비밀번호 확인
+    const isPasswordMatch = await bcrypt.compare(currentPassword, foundUser.password);
+    if (!isPasswordMatch) {
+      return res.status(400).json({
+        success: false,
+        message: "현재 비밀번호가 올바르지 않습니다.",
+      });
+    }
+
+    // 새 비밀번호 해싱
+    const hashedNewPassword = await bcrypt.hash(newPassword, salt);
+
+    // 비밀번호 업데이트
+    await User.updateOne({ email }, { $set: { password: hashedNewPassword } });
+
+    return res.status(200).json({
+      success: true,
+      message: "비밀번호가 성공적으로 변경되었습니다.",
+    });
+
+  } catch (error) {
+    console.error("비밀번호 변경 오류:", error);
+    return res.status(500).json({
+      success: false,
+      message: "서버 오류로 인해 비밀번호 변경에 실패했습니다.",
+    });
+  }
+};
+
 export {
   register,
   login,
@@ -231,4 +274,5 @@ export {
   getUserInfo,
   findUser,
   findPassword,
+  updatePassword
 };
