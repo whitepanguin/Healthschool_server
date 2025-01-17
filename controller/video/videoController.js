@@ -50,6 +50,10 @@ export const addReplyComments = async (req, res) => {
 
     // 데이터베이스에 저장
     const savedReply = await newReply.save();
+    await Comment.updateOne(
+      { _id: commentId },
+      { $inc: { replyCount: 1 } }  // replyCount 필드를 1 증가
+    );
 
     // 성공적으로 저장되었으면 저장된 데이터를 반환
     res.status(201).json(savedReply);
@@ -66,6 +70,7 @@ export const deleteReplyComments = async (req, res) => {
   console.log("cchildId:", childId)
   try {
     // 대댓글을 찾기
+    const updatedComment = await Comment.findById(parentId);
     const reply = await ReplyComment.findOne({ 
       _id: childId, 
       parentCommentId: parentId  // 부모 댓글 ID로 필터링
@@ -82,6 +87,11 @@ export const deleteReplyComments = async (req, res) => {
 
     // 대댓글 삭제
     await ReplyComment.deleteOne({ _id: childId });
+    await Comment.updateOne(
+      { _id: parentId },
+      { $inc: { replyCount: -1 } }  // replyCount 필드를 1 감소
+    );
+
 
     // 삭제 성공
     res.status(200).json({ message: '대댓글이 삭제되었습니다.' });
