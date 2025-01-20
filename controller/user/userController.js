@@ -1,6 +1,7 @@
 import path from "path";
 import User from "../../models/userSchema.js";
 import bcrypt from "bcrypt";
+import Certify from "../../models/certifySchema.js";
 
 const salt = await bcrypt.genSalt(10);
 
@@ -62,7 +63,10 @@ const login = async (req, res) => {
     res.status(200).json({
       loginSuccess: true,
       message: "로그인 성공하였습니다.",
-      currentUser: currentUser,
+      currentUser: {
+        ...currentUser,
+        profile: currentUser.profile || "/images/profile/defaultProfile.jpg",  // 프로필 경로 포함
+      },
     });
     // 2) JWT(Json Web Token)토큰은 소셜에서 추후 같이 사용.
   }
@@ -207,19 +211,36 @@ const remove = async (req, res) => {
 };
 
 const updatePicture = async (req, res) => {
-  const uploadFolder = "uploads/profiles";
-  const relativePath = path
-    .join(uploadFolder, req.file.filename)
-    .replaceAll("\\", "/");
+  try {
+    const { email } = req.body;
+    console.log("여기여기여기여기여기여기",req.body)
+    
 
-  // mongoDB에 저장한다.
-  // 유저를 찾는다
-  // 유저를 .updateOne(foundUser, {picture})
+    if (!req.file) {
+      return res.status(400).json({ message: "파일이 업로드되지 않았습니다." });
+    }
 
-  res.status(200).json({
-    message: "업로드 완료",
-    filePath: `${relativePath}`,
-  });
+    const uploadFolder = "uploads/profiles";
+    const relativePath = path.join(uploadFolder, req.file.filename).replaceAll("\\", "/");
+
+    const updatedUser = await User.findOneAndUpdate(
+      { email: email },
+      { profile: relativePath },
+      { new: true }
+    );
+
+    if (!updatedUser) {
+      return res.status(404).json({ message: "사용자를 찾을 수 없습니다." });
+    }
+
+    res.status(200).json({
+      message: "프로필 이미지가 성공적으로 업로드되었습니다.",
+      filePath: relativePath,
+    });
+  } catch (err) {
+    console.error("프로필 업데이트 오류:", err);
+    res.status(500).json({ message: "프로필 업로드 중 오류가 발생했습니다." });
+  }
 };
 
 // 비밀번호 변경
@@ -265,6 +286,70 @@ const updatePassword = async (req, res) => {
   }
 };
 
+
+const certifyRequest = async (req, res) => {
+  try {
+    const { email, qualifyNumber } = req.body;
+
+    if (!req.files || req.files.length === 0 || !email || !qualifyNumber) {
+      return res.status(400).json({ message: "모든 필수 정보를 입력해주세요." });
+    }
+
+    const imageUrls = req.files.map((file) =>
+      path.join("uploads/certify", file.filename).replaceAll("\\", "/")
+    );
+
+    const newCertify = new Certify({
+      email,
+      qualifyNumber,
+      imageUrls,
+      isCertified: false,
+    });
+
+    await newCertify.save();
+
+    res.status(201).json({
+      success: true,
+      message: "강사 인증 요청이 성공적으로 제출되었습니다.",
+      certify: newCertify,
+    });
+  } catch (error) {
+    console.error("강사 인증 요청 오류:", error);
+    res.status(500).json({ success: false, message: "서버 오류가 발생했습니다." });
+  }
+};
+
+
+
+
+// 관리자 (승인/거절)
+// export const updateCertifyStatus = async (req, res) => {
+//   try {
+//     const { id } = req.params; 
+//     const { isCertified } = req.body; 
+
+//     const updatedCertify = await Certify.findByIdAndUpdate(
+//       id,
+//       { isCertified },
+//       { new: true }
+//     );
+
+//     if (!updatedCertify) {
+//       return res.status(404).json({ message: "인증 요청을 찾을 수 없습니다." });
+//     }
+
+//     res.status(200).json({
+//       success: true,
+//       message: `강사 인증 상태가 ${isCertified ? "승인" : "거절"}되었습니다.`,
+//       certify: updatedCertify
+//     });
+//   } catch (error) {
+//     console.error("인증 상태 변경 오류:", error);
+//     res.status(500).json({ success: false, message: "서버 오류가 발생했습니다." });
+//   }
+// };
+
+
 export {
   register,
   login,
@@ -274,5 +359,6 @@ export {
   getUserInfo,
   findUser,
   findPassword,
-  updatePassword
+  updatePassword,
+  certifyRequest
 };
