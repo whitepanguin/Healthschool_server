@@ -6,6 +6,7 @@ import paymentRouter from './payment/paymentRouter.js';
 import videoRouter from './video/videoRouter.js';
 import helpRouter from './help/helpRouter.js';
 import storeRouter from './store/storeRouter.js';
+// import certifyRouter from './certify/certifyRouter.js';
 
 const rootRouter = express.Router();
 
@@ -16,4 +17,5 @@ rootRouter.use("/payment", paymentRouter)
 rootRouter.use("/videos", videoRouter)
 rootRouter.use("/stores", storeRouter)
 rootRouter.use("/help", helpRouter)
+// rootRouter.use("/certify", certifyRouter)
 export default rootRouter;
