@@ -103,7 +103,7 @@ export const deleteReplyComments = async (req, res) => {
 };
 export const getComments = async (req, res) => {
   const { videoId } = req.params;  // URL에서 videoId 받기
-  console.log(videoId)
+  console.log("이게 뭐야?",videoId)
   try {
     // 해당 동영상에 속한 댓글 조회
     const comments = await Comment.find({ videoId }).sort({ uploadDate: -1 });  // 최신 댓글 먼저 가져오기
