@@ -133,7 +133,7 @@ export const addVideo = async (req, res) => {
     imageUrl,
     description,
   });
-
+  
   try {
     const savedVideo = await newVideo.save();
     res.status(201).json(savedVideo); // 동영상 추가 후 응답
