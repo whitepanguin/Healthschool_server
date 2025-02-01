@@ -319,36 +319,15 @@ const certifyRequest = async (req, res) => {
   }
 };
 
-
-
-
-// 관리자 (승인/거절)
-// export const updateCertifyStatus = async (req, res) => {
-//   try {
-//     const { id } = req.params; 
-//     const { isCertified } = req.body; 
-
-//     const updatedCertify = await Certify.findByIdAndUpdate(
-//       id,
-//       { isCertified },
-//       { new: true }
-//     );
-
-//     if (!updatedCertify) {
-//       return res.status(404).json({ message: "인증 요청을 찾을 수 없습니다." });
-//     }
-
-//     res.status(200).json({
-//       success: true,
-//       message: `강사 인증 상태가 ${isCertified ? "승인" : "거절"}되었습니다.`,
-//       certify: updatedCertify
-//     });
-//   } catch (error) {
-//     console.error("인증 상태 변경 오류:", error);
-//     res.status(500).json({ success: false, message: "서버 오류가 발생했습니다." });
-//   }
-// };
-
+export const getAllUsers = async (req, res) => {
+  try {
+    const users = await User.find({}, "email name"); // 이메일과 이름만 가져옴
+    res.json(users);
+  } catch (error) {
+    console.error("유저 목록을 불러오는 중 오류 발생:", error);
+    res.status(500).json({ error: "서버 오류" });
+  }
+};
 
 export {
   register,

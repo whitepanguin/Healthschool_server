@@ -1,7 +1,7 @@
 import { fileURLToPath } from "url";
 import path from "path";
 import express from 'express';
-import { register, login, modify, remove, updatePicture, getUserInfo, findUser, findPassword, updatePassword, certifyRequest} from '../../controller/user/userController.js';
+import { register, login, modify, remove, updatePicture, getUserInfo, findUser, findPassword, updatePassword, certifyRequest, getAllUsers} from '../../controller/user/userController.js';
 import multer from 'multer';
 import fs from "fs";
 
@@ -48,4 +48,5 @@ userRouter.post("/findUser", findUser);
 userRouter.post("/findPass", findPassword);
 userRouter.put("/updatePassword", updatePassword);
 userRouter.post("/certifyRequest", upload.array("imageUrls", 5), certifyRequest); // 💡 강사 인증 요청
+userRouter.get("/allUsers", getAllUsers);
 export default userRouter;
