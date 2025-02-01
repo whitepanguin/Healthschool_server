@@ -1,8 +1,9 @@
-// import express from 'express';
-// import { certifyRequest } from '../../controller/user/userController.js';
+import express from 'express';
+import { getCertifyList, updateCertifyStatus } from '../../controller/admin/adminController.js';
 
-// const certifyRouter = express.Router()
+const certifyRouter = express.Router()
 
-// certifyRouter.post("/certifyRequest",certifyRequest)
+certifyRouter.get("/list",getCertifyList)
+certifyRouter.put("/update/:id", updateCertifyStatus);
 
-// export default certifyRouter;
+export default certifyRouter;
