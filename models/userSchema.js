@@ -13,7 +13,7 @@ const userSchema = new Schema({
   provider: { type: String },
   createdAt: { type: String, default: getCurrentTime },
   updatedAt: { type: String, default: getCurrentTime },
-});
+},{ timestamps: true });
 
 // model("객체명", 스키마, "컬렉션(테이블)명");
 export default model("User", userSchema, "users");

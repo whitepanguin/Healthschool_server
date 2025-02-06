@@ -1,6 +1,7 @@
-import path from 'path';
+import path from "path";
 import User from "../../models/userSchema.js";
 import bcrypt from "bcrypt";
+import Certify from "../../models/certifySchema.js";
 
 const salt = await bcrypt.genSalt(10);
 
@@ -26,7 +27,7 @@ const register = async (req, res) => {
       password: hashedPassword,
       name: req.body.name,
       birthDate: req.body.birthDate,
-      nickname: req.body.nickname,
+      nickName: req.body.nickName,
     });
 
     return res.status(201).json({
@@ -62,33 +63,139 @@ const login = async (req, res) => {
     res.status(200).json({
       loginSuccess: true,
       message: "로그인 성공하였습니다.",
-      currentUser: currentUser,
+      currentUser: {
+        ...currentUser,
+        profile: currentUser.profile || "/images/profile/defaultProfile.jpg",  // 프로필 경로 포함
+      },
     });
     // 2) JWT(Json Web Token)토큰은 소셜에서 추후 같이 사용.
+  }
+};
+
+//유저 찾기
+const findUser = async (req, res) => {
+  const { name, birthDate } = req.body;
+
+  try {
+    const user = await User.findOne({ name, birthDate }).lean();
+    if (!user) {
+      return res.status(404).json({ message: "사용자를 찾을 수 없습니다." });
+    }
+
+    res.status(200).json({ message: `이메일를 찾았습니다: ${user.email}` });
+  } catch (error) {
+    console.error("Error during findUser:", error);
+    res.status(500).json({ message: "서버 오류" });
+  }
+};
+
+//비밀번호 찾기
+const findPassword = async (req, res) => {
+  const { email, name, birthDate } = req.body;
+
+  try {
+    const user = await User.findOne({ email, name, birthDate }).lean();
+    if (!user) {
+      return res.status(404).json({ message: "사용자를 찾을 수 없습니다." });
+    }
+    // 6자리 임시 비밀번호 생성
+    const temporaryPassword = Math.random().toString(36).slice(-6); // 영문+숫자 6자리
+
+    const hashedPassword = await bcrypt.hash(temporaryPassword, salt);
+    await User.updateOne(
+      { email: user.email },
+      { $set: { password: hashedPassword } }
+    );
+
+    res.status(200).json({ message: `임시 비밀번호: ${temporaryPassword}` });
+  } catch (error) {
+    console.error("Error during findUser:", error);
+    res.status(500).json({ message: "서버 오류" });
   }
 };
 
 // 20분
 // 회원정보 수정
 const modify = async (req, res) => {
-  const { email } = req.body;
-  // 회원 정보를 수정한다.
-  const foundUser = await User.findOne({ email: email }).lean();
-  if (!foundUser) {
-    res.status(400).json({
-      updateSuccess: false,
-      message: "업데이트를 할 수 없습니다",
-    });
-  } else {
-    await User.updateOne(foundUser, req.body);
-    const updatedUser = await User.findOne({ email: email }).lean();
+  try {
+    const { email, name, nickName, address, birthDate } = req.body;
+
+    // 📌 이메일 필수 체크
+    if (!email) {
+      return res.status(400).json({
+        updateSuccess: false,
+        message: "이메일이 필요합니다.",
+      });
+    }
+
+    // 📌 사용자 존재 확인
+    const foundUser = await User.findOne({ email }).lean();
+    if (!foundUser) {
+      return res.status(404).json({
+        updateSuccess: false,
+        message: "존재하지 않는 사용자입니다.",
+      });
+    }
+
+    // 📌 업데이트 데이터 구성
+    const updateData = {};
+    if (name) updateData.name = name;
+    if (nickName) updateData.nickName = nickName;
+    if (address) updateData.address = address;
+    if (birthDate) updateData.birthDate = Number(birthDate);  // ✅ 숫자 변환
+    updateData.updatedAt = new Date().toISOString();  // ✅ 업데이트 시간 갱신
+
+    // 📌 정보 업데이트
+    await User.updateOne({ email }, { $set: updateData });
+
+    // 📌 업데이트된 정보 반환
+    const updatedUser = await User.findOne({ email }).lean();
     res.status(200).json({
       updateSuccess: true,
       message: "성공적으로 업데이트가 완료되었습니다.",
       currentUser: updatedUser,
     });
+
+  } catch (error) {
+    console.error("회원정보 업데이트 오류:", error);
+    res.status(500).json({
+      updateSuccess: false,
+      message: "서버 오류로 업데이트에 실패했습니다.",
+    });
   }
 };
+
+// ✅ 유저 정보 조회 API 추가
+const getUserInfo = async (req, res) => {
+  const { email } = req.query;  // 🔑 쿼리 파라미터에서 이메일 받기
+
+  try {
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        message: "이메일이 필요합니다.",
+      });
+    }
+
+    const user = await User.findOne({ email }).lean();
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "사용자를 찾을 수 없습니다.",
+      });
+    }
+
+    res.status(200).json(user);  // ✅ 사용자 정보 반환
+  } catch (error) {
+    console.error("유저 정보 조회 실패:", error);
+    res.status(500).json({
+      success: false,
+      message: "서버 오류가 발생했습니다.",
+    });
+  }
+};
+
 
 // 회원 탈퇴
 const remove = async (req, res) => {
@@ -104,17 +211,133 @@ const remove = async (req, res) => {
 };
 
 const updatePicture = async (req, res) => {
-  const uploadFolder = "uploads/profiles";
-  const relativePath = path.join(uploadFolder, req.file.filename).replaceAll("\\", "/")
+  try {
+    const { email } = req.body;
+    console.log("여기여기여기여기여기여기",req.body)
+    
 
-  // mongoDB에 저장한다.
-  // 유저를 찾는다
-  // 유저를 .updateOne(foundUser, {picture})
+    if (!req.file) {
+      return res.status(400).json({ message: "파일이 업로드되지 않았습니다." });
+    }
 
-  res.status(200).json({
-    message : "업로드 완료",
-    filePath : `${relativePath}`
-  })
-}
+    const uploadFolder = "uploads/profiles";
+    const relativePath = path.join(uploadFolder, req.file.filename).replaceAll("\\", "/");
 
-export { register, login, modify, remove, updatePicture };
+    const updatedUser = await User.findOneAndUpdate(
+      { email: email },
+      { profile: relativePath },
+      { new: true }
+    );
+
+    if (!updatedUser) {
+      return res.status(404).json({ message: "사용자를 찾을 수 없습니다." });
+    }
+
+    res.status(200).json({
+      message: "프로필 이미지가 성공적으로 업로드되었습니다.",
+      filePath: relativePath,
+    });
+  } catch (err) {
+    console.error("프로필 업데이트 오류:", err);
+    res.status(500).json({ message: "프로필 업로드 중 오류가 발생했습니다." });
+  }
+};
+
+// 비밀번호 변경
+const updatePassword = async (req, res) => {
+  const { email, currentPassword, newPassword } = req.body;
+
+  try {
+    // 사용자 조회
+    const foundUser = await User.findOne({ email }).lean();
+    if (!foundUser) {
+      return res.status(404).json({
+        success: false,
+        message: "사용자를 찾을 수 없습니다.",
+      });
+    }
+
+    // 현재 비밀번호 확인
+    const isPasswordMatch = await bcrypt.compare(currentPassword, foundUser.password);
+    if (!isPasswordMatch) {
+      return res.status(400).json({
+        success: false,
+        message: "현재 비밀번호가 올바르지 않습니다.",
+      });
+    }
+
+    // 새 비밀번호 해싱
+    const hashedNewPassword = await bcrypt.hash(newPassword, salt);
+
+    // 비밀번호 업데이트
+    await User.updateOne({ email }, { $set: { password: hashedNewPassword } });
+
+    return res.status(200).json({
+      success: true,
+      message: "비밀번호가 성공적으로 변경되었습니다.",
+    });
+
+  } catch (error) {
+    console.error("비밀번호 변경 오류:", error);
+    return res.status(500).json({
+      success: false,
+      message: "서버 오류로 인해 비밀번호 변경에 실패했습니다.",
+    });
+  }
+};
+
+
+const certifyRequest = async (req, res) => {
+  try {
+    const { email, qualifyNumber } = req.body;
+
+    if (!req.files || req.files.length === 0 || !email || !qualifyNumber) {
+      return res.status(400).json({ message: "모든 필수 정보를 입력해주세요." });
+    }
+
+    const imageUrls = req.files.map((file) =>
+      path.join("uploads/certify", file.filename).replaceAll("\\", "/")
+    );
+
+    const newCertify = new Certify({
+      email,
+      qualifyNumber,
+      imageUrls,
+      isCertified: false,
+    });
+
+    await newCertify.save();
+
+    res.status(201).json({
+      success: true,
+      message: "강사 인증 요청이 성공적으로 제출되었습니다.",
+      certify: newCertify,
+    });
+  } catch (error) {
+    console.error("강사 인증 요청 오류:", error);
+    res.status(500).json({ success: false, message: "서버 오류가 발생했습니다." });
+  }
+};
+
+export const getAllUsers = async (req, res) => {
+  try {
+    const users = await User.find({}, "email name"); // 이메일과 이름만 가져옴
+    res.json(users);
+  } catch (error) {
+    console.error("유저 목록을 불러오는 중 오류 발생:", error);
+    res.status(500).json({ error: "서버 오류" });
+  }
+};
+
+export {
+  register,
+  login,
+  modify,
+  remove,
+  updatePicture, 
+  getUserInfo,
+  findUser,
+  findPassword,
+  updatePassword,
+  certifyRequest
+};

@@ -48,40 +48,44 @@ app.use(express.urlencoded({ extended: false }));
 app.use(passport.initialize());
 initializePassport();
 
-// 이미지 업로드 설정
-const uploadFolder = "uploads/profiles";
-const getUniqueFileName = (originalName, uploadFolder) => {
-  const ext = path.extname(originalName);
-  const baseName = path.basename(originalName, ext);
-  let uniqueName = originalName;
-  let counter = 1;
+// 💡 Multer 설정 변경
+const getDynamicStorage = () => {
+  return multer.diskStorage({
+    destination: (req, file, cb) => {
+      let folderPath;
+      if (req.originalUrl.includes("/certifyRequest")) { // 💡 강사 인증 요청 경로 처리
+        folderPath = path.join(__dirname, "./uploads/certify");
+      } else {
+        folderPath = path.join(__dirname, "./uploads/profiles"); // 기본은 프로필 사진 폴더
+      }
 
-  while (fs.existsSync(path.join(uploadFolder, uniqueName))) {
-    uniqueName = `${baseName}(${counter})${ext}`;
-    counter++;
-  }
-  return uniqueName;
+      if (!fs.existsSync(folderPath)) {
+        fs.mkdirSync(folderPath, { recursive: true }); // 폴더가 없으면 생성
+      }
+
+      cb(null, folderPath);
+    },
+    filename: (req, file, cb) => {
+      const uniqueFileName = `${Date.now()}-${file.originalname}`;
+      cb(null, uniqueFileName);
+    },
+  });
 };
 
-const upload = multer({
-  storage: multer.diskStorage({
-    destination(req, file, done) {
-      done(null, path.join(__dirname, "./uploads/profiles"));
-    },
-    filename(req, file, done) {
-      const uniqueFileName = getUniqueFileName(file.originalname, uploadFolder);
-      done(null, uniqueFileName);
-    },
-  }),
-});
+const upload = multer({ storage: getDynamicStorage() });
 
-const uploadMiddleware = upload.single("picture");
 
 // 정적 파일 및 라우터 설정
 app.use(express.json()); // JSON 요청 허용
 app.use(express.urlencoded({ extended: true })); // URL 인코딩된 데이터 허용
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 // app.use(uploadMiddleware);
+
+// 💡 정적 파일 제공 경로
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+
+// 💡 라우터 설정 및 Multer 연동
+
 app.use("/", rootRouter);
 
 // 서버 실행

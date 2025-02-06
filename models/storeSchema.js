@@ -14,6 +14,7 @@ const storeSchema = new mongoose.Schema({
   PayDate: { type: Date, default: Date.now },
   tags: [String],
   imageUrl: String,
+  option1:Boolean,
 });
 
 const Store = mongoose.model('Store', storeSchema,"stores");
