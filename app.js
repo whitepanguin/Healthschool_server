@@ -78,8 +78,10 @@ const upload = multer({
 const uploadMiddleware = upload.single("picture");
 
 // 정적 파일 및 라우터 설정
+app.use(express.json()); // JSON 요청 허용
+app.use(express.urlencoded({ extended: true })); // URL 인코딩된 데이터 허용
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
-app.use(uploadMiddleware);
+// app.use(uploadMiddleware);
 app.use("/", rootRouter);
 
 // 서버 실행
