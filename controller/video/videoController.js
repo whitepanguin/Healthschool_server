@@ -163,21 +163,6 @@ export const deleteComment = async (req, res) => {
       // 🔹 6️⃣ 댓글 삭제
       await Comment.deleteOne({ _id: commentId, videoId }, { session });
 
-    // 삭제 성공
-    res.status(200).json({ message: '대댓글이 삭제되었습니다.' });
-    
-  } catch (err) {
-    console.error('대댓글 삭제 중 오류 발생:', err);
-    res.status(500).json({ error: '서버 오류' });
-  }
-};
-export const getComments = async (req, res) => {
-  const { videoId } = req.params;  // URL에서 videoId 받기
-  console.log("이게 뭐야?",videoId)
-  try {
-    // 해당 동영상에 속한 댓글 조회
-    const comments = await Comment.find({ videoId }).sort({ uploadDate: -1 });  // 최신 댓글 먼저 가져오기
-
       // 🔹 7️⃣ 트랜잭션 커밋 (완료)
       await session.commitTransaction();
       session.endSession();
