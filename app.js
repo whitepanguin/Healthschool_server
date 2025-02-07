@@ -74,10 +74,18 @@ const getDynamicStorage = () => {
 
 const upload = multer({ storage: getDynamicStorage() });
 
+
+// 정적 파일 및 라우터 설정
+app.use(express.json()); // JSON 요청 허용
+app.use(express.urlencoded({ extended: true })); // URL 인코딩된 데이터 허용
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+// app.use(uploadMiddleware);
+
 // 💡 정적 파일 제공 경로
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 // 💡 라우터 설정 및 Multer 연동
+
 app.use("/", rootRouter);
 
 // 서버 실행
