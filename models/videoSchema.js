@@ -14,6 +14,7 @@ const videoSchema = new mongoose.Schema({
   imageUrl: String,
   description: String,
   userProfile : String,
+  visibility : String,
 });
 
 const Video = mongoose.model('Video', videoSchema,"videos");
